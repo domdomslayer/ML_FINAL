@@ -4,11 +4,9 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 import sklearn.feature_extraction.text as fe_text
 import glob
-import copy
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-
 import requests
 
 
@@ -75,7 +73,7 @@ def showClfLabelFreq(class_list):
 
 """
 引数に与えられたURLのゲームのジャンルを予測し、実際のジャンルと一緒に出力する関数
-BoWで生成した特徴ベクトルの扱いが難しかったので没
+BoWの扱いが難しかったので没になりました。
 """
 def predictOtherGame(url):
     soup = BeautifulSoup(requests.get(url).text, 'html.parser')
@@ -90,7 +88,7 @@ def predictOtherGame(url):
 fh_list=[] #ファイルハンドラのリスト
 docs=[] #ドキュメント本文（ゲームの紹介文）のリスト
 clfLabel_list = [] #分類クラスであるジャンルのリスト
-title_list = []
+title_list = [] #データフレームのindexに用いるためのタイトルリスト
 
 documents_list = sorted(glob.glob("./HTML/*")) #ファイル「HTML」直下に全てのHTMLがある
 for document in documents_list:
@@ -104,12 +102,12 @@ for document in documents_list:
 #Bag-of-words形式の特徴ベクトルを生成
 vectors_tfidf, vectorizer_tfidf = bow_tfidf(docs)
 
-#String型の分類ラベルを数値に変換
+#String型の分類ラベル(ゲームジャンル)を数値に変換
 le = LabelEncoder()
 clfLabel_id = le.fit_transform(clfLabel_list)
 #print(le.classes_) #ラベルと数値の対応確認
 
-#データセットの分類クラス分布を確認する
+#データセットの分類クラス分布の棒グラフを出力する
 #showClfLabelFreq(le.classes_)
 
 #データセット分析用のデータフレームの生成
