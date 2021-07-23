@@ -56,7 +56,7 @@ def predictOtherGame(url):
     text, answer=pre_processing(soup.get_text(), "predicting")
     vectors, vectorizer = bow_tfidf(text)
     print("【" + game_title +"のゲームジャンル】")
-    print("予測結果：" + linSVC.predict(vectors))
+    print("予測結果：" + clf.predict(vectors))
     print("実際：" + answer)
 
 
