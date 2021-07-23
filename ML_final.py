@@ -1,6 +1,5 @@
 from bs4 import BeautifulSoup
 from sklearn import svm
-from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 import sklearn.feature_extraction.text as fe_text
@@ -69,6 +68,7 @@ def showClfLabelFreq(class_list):
     fig = plt.figure(figsize=(20, 5))
     ax = fig.add_subplot(1, 1, 1)
     ax.set_position([0.05,0.05,0.9,0.9])
+    ax.tick_params(labelsize=8)
     ax.bar(range(len(freq_list)), freq_list,  tick_label=class_list)
     plt.show()
 
@@ -92,7 +92,7 @@ docs=[] #ドキュメント本文（ゲームの紹介文）のリスト
 clfLabel_list = [] #分類クラスであるジャンルのリスト
 title_list = []
 
-documents_list = glob.glob("./HTML/*") #ファイル「HTML」直下に全てのHTMLがある
+documents_list = sorted(glob.glob("./HTML/*")) #ファイル「HTML」直下に全てのHTMLがある
 for document in documents_list:
     fh = open(document, encoding='utf-8')
     fh_list.append(fh)
@@ -109,20 +109,22 @@ le = LabelEncoder()
 clfLabel_id = le.fit_transform(clfLabel_list)
 #print(le.classes_) #ラベルと数値の対応確認
 
+#データセットの分類クラス分布を確認する
+#showClfLabelFreq(le.classes_)
+
 #データセット分析用のデータフレームの生成
 df_columns = vectorizer_tfidf.get_feature_names()
 df_columns.append('"game_genre"')
 df = pd.DataFrame(np.insert(vectors_tfidf, vectors_tfidf.shape[1], clfLabel_id, axis=1), index=title_list, columns=df_columns)
-showClfLabelFreq(le.classes_)
+#print(df)
 
 #データセットを訓練データとテストデータに分割
 X_train, X_test, y_train, y_test = train_test_split(vectors_tfidf, clfLabel_list)
 
 #分類モデルには線形SVCを用いる
 clf=svm.LinearSVC()
-#clf=RandomForestClassifier()
 clf.fit(X_train, y_train)
-#print(clf.score(X_test, y_test))
+print(clf.score(X_test, y_test))
 
 for fh in fh_list:
     fh.close()
