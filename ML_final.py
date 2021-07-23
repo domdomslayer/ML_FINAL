@@ -1,13 +1,15 @@
 from bs4 import BeautifulSoup
+from sklearn import svm
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder
 import sklearn.feature_extraction.text as fe_text
 import glob
 import copy
 import numpy as np
 import pandas as pd
-from sklearn import svm
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import LabelEncoder
+import matplotlib.pyplot as plt
+
 import requests
 
 
@@ -20,7 +22,7 @@ def bow_tfidf(docs):
 def pre_processing(text, mode):
     #分類クラスとなるジャンルの取得と、共通部分をカットする前処理
     if mode == "learning":
-        genre_list.append(get_genre(text))
+        clfLabel_list.append(get_genre(text))
         docs.append(cut_common_part(text))
     elif mode == "predicting":
         return  cut_common_part(text), get_genre(text)
@@ -58,6 +60,19 @@ def cut_common_part(document):
             text += word + " "
     return text
 
+#データセット収集効率化のためのジャンルの分布確認
+def showClfLabelFreq(class_list):
+    freq_list=[]
+    for genre in class_list:
+        freq_list.append(clfLabel_list.count(genre))
+        #print(genre + " : " + str(clfLabel_list.count(genre)) +" data")
+    fig = plt.figure(figsize=(20, 5))
+    ax = fig.add_subplot(1, 1, 1)
+    ax.set_position([0.05,0.05,0.9,0.9])
+    ax.bar(range(len(freq_list)), freq_list,  tick_label=class_list)
+    plt.show()
+
+
 """
 引数に与えられたURLのゲームのジャンルを予測し、実際のジャンルと一緒に出力する関数
 BoWで生成した特徴ベクトルの扱いが難しかったので没
@@ -74,7 +89,7 @@ def predictOtherGame(url):
 
 fh_list=[] #ファイルハンドラのリスト
 docs=[] #ドキュメント本文（ゲームの紹介文）のリスト
-genre_list = [] #分類クラスであるジャンルのリスト
+clfLabel_list = [] #分類クラスであるジャンルのリスト
 title_list = []
 
 documents_list = glob.glob("./HTML/*") #ファイル「HTML」直下に全てのHTMLがある
@@ -91,17 +106,17 @@ vectors_tfidf, vectorizer_tfidf = bow_tfidf(docs)
 
 #String型の分類ラベルを数値に変換
 le = LabelEncoder()
-genre_id = le.fit_transform(genre_list)
+clfLabel_id = le.fit_transform(clfLabel_list)
 #print(le.classes_) #ラベルと数値の対応確認
 
 #データセット分析用のデータフレームの生成
 df_columns = vectorizer_tfidf.get_feature_names()
 df_columns.append('"game_genre"')
-df = pd.DataFrame(np.insert(vectors_tfidf, vectors_tfidf.shape[1], genre_id, axis=1), index=title_list, columns=df_columns)
-print(df)
+df = pd.DataFrame(np.insert(vectors_tfidf, vectors_tfidf.shape[1], clfLabel_id, axis=1), index=title_list, columns=df_columns)
+showClfLabelFreq(le.classes_)
 
 #データセットを訓練データとテストデータに分割
-X_train, X_test, y_train, y_test = train_test_split(vectors_tfidf, genre_list)
+X_train, X_test, y_train, y_test = train_test_split(vectors_tfidf, clfLabel_list)
 
 #分類モデルには線形SVCを用いる
 clf=svm.LinearSVC()
