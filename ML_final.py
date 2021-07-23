@@ -1,12 +1,15 @@
 from bs4 import BeautifulSoup
 import sklearn.feature_extraction.text as fe_text
 import glob
+import copy
 import numpy as np
+import pandas as pd
 from sklearn import svm
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 import requests
+
 
 def bow_tfidf(docs):
     #TF-IDFで重みづけされたBag-of-Words形式の特徴ベクトルの生成
@@ -72,13 +75,16 @@ def predictOtherGame(url):
 fh_list=[] #ファイルハンドラのリスト
 docs=[] #ドキュメント本文（ゲームの紹介文）のリスト
 genre_list = [] #分類クラスであるジャンルのリスト
+title_list = []
 
 documents_list = glob.glob("./HTML/*") #ファイル「HTML」直下に全てのHTMLがある
 for document in documents_list:
     fh = open(document, encoding='utf-8')
     fh_list.append(fh)
     #Beautiful Soupを用いてHTMLタグを削除
-    pre_processing(BeautifulSoup(fh.read()).get_text(), "learning") 
+    soup = BeautifulSoup(fh.read())
+    pre_processing(soup.get_text(), "learning")
+    title_list.append(document[7:-5]) #データフレームのindexに用いるためのタイトルリストも取得
 
 #Bag-of-words形式の特徴ベクトルを生成
 vectors_tfidf, vectorizer_tfidf = bow_tfidf(docs)
@@ -86,10 +92,13 @@ vectors_tfidf, vectorizer_tfidf = bow_tfidf(docs)
 #String型の分類ラベルを数値に変換
 le = LabelEncoder()
 genre_id = le.fit_transform(genre_list)
-print(le.classes_) #ラベルと数値の対応確認
+#print(le.classes_) #ラベルと数値の対応確認
 
-np.insert(vectors_tfidf, vectors_tfidf.shape[1], genre_id, axis=1)
-print(vectors_tfidf[1])
+#データセット分析用のデータフレームの生成
+df_columns = vectorizer_tfidf.get_feature_names()
+df_columns.append('"game_genre"')
+df = pd.DataFrame(np.insert(vectors_tfidf, vectors_tfidf.shape[1], genre_id, axis=1), index=title_list, columns=df_columns)
+print(df)
 
 #データセットを訓練データとテストデータに分割
 X_train, X_test, y_train, y_test = train_test_split(vectors_tfidf, genre_list)
