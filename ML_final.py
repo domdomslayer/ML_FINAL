@@ -2,11 +2,14 @@ from bs4 import BeautifulSoup
 from sklearn import svm
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
+from sklearn.metrics import confusion_matrix
+from sklearn.model_selection import cross_val_score
 import sklearn.feature_extraction.text as fe_text
 import glob
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import seaborn as sns
 import requests
 
 
@@ -116,13 +119,31 @@ df_columns.append('"game_genre"')
 df = pd.DataFrame(np.insert(vectors_tfidf, vectors_tfidf.shape[1], clfLabel_id, axis=1), index=title_list, columns=df_columns)
 #print(df)
 
-#データセットを訓練データとテストデータに分割
-X_train, X_test, y_train, y_test = train_test_split(vectors_tfidf, clfLabel_list)
-
 #分類モデルには線形SVCを用いる
 clf=svm.LinearSVC()
+
+#ホールドアウト法での精度検証
+X_train, X_test, y_train, y_test = train_test_split(vectors_tfidf, clfLabel_list, random_state=555)
 clf.fit(X_train, y_train)
-print(clf.score(X_test, y_test))
+print('Hold-out scores: {}'.format(clf.score(X_test, y_test)))
+
+#モデル評価のための混合行列の生成
+predicted = clf.predict(X_test)
+cm = confusion_matrix(y_test, predicted)
+cm = pd.DataFrame(cm)
+sns.heatmap(cm, annot=True, cmap="Blues", fmt="d")
+plt.xlabel("predicted label")
+plt.ylabel("real label")
+plt.show()
+
+#10分割交差検証での精度検証
+scores = cross_val_score(clf, vectors_tfidf, clfLabel_list, cv=10)
+print('Cross-Validation scores: {}'.format(scores))
+print('Average score: {}'.format(scores.mean()))
+
+
+
+
 
 for fh in fh_list:
     fh.close()
